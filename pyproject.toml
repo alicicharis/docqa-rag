@@ -19,6 +19,9 @@ docqa = "docqa_rag.cli:main"
 requires = ["uv_build>=0.11.7,<0.12"]
 build-backend = "uv_build"
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
 [tool.mypy]
 strict = true
 

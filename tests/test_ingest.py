@@ -2,6 +2,7 @@ import hashlib
 from pathlib import Path
 
 import pytest
+from chromadb.api.shared_system_client import SharedSystemClient
 
 from docqa_rag import store
 from docqa_rag.ingest import ingest
@@ -21,6 +22,8 @@ class FakeEmbedder:
 @pytest.fixture
 def knowledge(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.chdir(tmp_path)
+    # Chroma caches clients by the relative index path, which is the same in every test.
+    SharedSystemClient.clear_system_cache()
     folder = tmp_path / "knowledge"
     folder.mkdir()
     return folder
@@ -83,6 +86,26 @@ def test_deleted_file_is_removed(knowledge: Path) -> None:
     assert store.stored_sources(store.open_collection()) == {
         str((knowledge / "a.md").resolve())
     }
+
+
+def test_file_without_chunks_is_left_out(knowledge: Path) -> None:
+    (knowledge / "empty.md").write_text("---\ntitle: x\n---\n")
+    embedder = FakeEmbedder()
+
+    for _ in range(2):
+        summary = ingest(embedder)
+        assert (summary.files, summary.indexed, summary.chunks) == (0, 0, 0)
+        assert (summary.unchanged, summary.removed) == (0, 0)
+    assert embedder.texts == 0
+
+    emptied = knowledge / "emptied.md"
+    emptied.write_text(SMALL)
+    ingest(embedder)
+    emptied.write_text("")
+    summary = ingest(embedder)
+
+    assert (summary.files, summary.removed) == (0, 1)
+    assert store.open_collection().count() == 0
 
 
 def test_rebuild_reembeds_everything(knowledge: Path) -> None:

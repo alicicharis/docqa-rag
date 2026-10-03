@@ -41,7 +41,7 @@ def main() -> None:
         return
     try:
         _run_ingest(args)
-    except Exception as e:  # noqa: BLE001 - top-level handler, prints and exits 1
+    except Exception as e:  # top-level handler, prints and exits 1
         if args.verbose:
             traceback.print_exc()
         print(f"docqa: {e}", file=sys.stderr)
