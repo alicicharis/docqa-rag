@@ -30,6 +30,13 @@ embedded, unchanged files are skipped, and deleted files are removed from the
 index. Use `--rebuild` to re-embed everything. Add `--verbose` to see
 tracebacks on errors.
 
+```sh
+docqa search "<query>" [--top-k N]
+```
+
+Prints the closest chunks (default 5) with scores and sources. It makes no LLM
+call and needs `docqa ingest` to have run first.
+
 ## Development
 
 ```sh
