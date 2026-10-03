@@ -2,7 +2,7 @@
 
 Ordered by build sequence.
 
-## 1. Package scaffold - to do
+## 1. Package scaffold - done
 
 **What:** The project is an installable `src/` package with a `docqa` command, and the lint, type and test checks run clean on it.
 
