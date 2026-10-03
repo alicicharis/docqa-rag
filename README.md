@@ -37,6 +37,14 @@ docqa search "<query>" [--top-k N]
 Prints the closest chunks (default 5) with scores and sources. It makes no LLM
 call and needs `docqa ingest` to have run first.
 
+```sh
+docqa ask "<question>" [--top-k N]
+```
+
+Answers from the closest chunks (default 5) with Claude and prints only the
+answer. It says it doesn't know when the documents don't cover the question.
+It needs both API keys and `docqa ingest` to have run first.
+
 ## Development
 
 ```sh
