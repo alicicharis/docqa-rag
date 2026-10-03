@@ -10,7 +10,7 @@ Ordered by build sequence.
 
 ## 2. Document ingestion - to do
 
-**What:** `docqa ingest <path>` indexes markdown files into the local index. Re-running it skips unchanged files and replaces changed ones, and a missing API key fails with one clear message.
+**What:** `docqa ingest` indexes the markdown files in the `knowledge/` folder into the local index, so the index mirrors the folder. Re-running it skips unchanged files, replaces changed ones and removes deleted ones, and a missing API key fails with one clear message.
 
 **Design:** [Configuration](DESIGN.md#configuration), [Chunking](DESIGN.md#chunking), [Embeddings](DESIGN.md#embeddings), [Vector store](DESIGN.md#vector-store), [Ingest](DESIGN.md#ingest), [Errors and output](DESIGN.md#errors-and-output), [Testing](DESIGN.md#testing)
 

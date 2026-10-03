@@ -75,16 +75,17 @@ One responsibility per module under `src/docqa_rag/`:
 
 ## Ingest
 
-`docqa ingest <path> [--rebuild]`
+`docqa ingest [--rebuild]`
 
-- `<path>` is a single `.md` file or a directory searched recursively for `.md` files. Other extensions are ignored.
+- Always ingests `./knowledge/`, resolved against the current working directory and searched recursively for `.md` files. Other extensions are ignored. There is no path argument or flag to change the folder.
+- If `./knowledge/` doesn't exist, exit 1 with a message to create it and add `.md` files. It is never created automatically.
 - For each file, compare its content hash with the stored `content_hash` for that `source`:
   - **Unchanged:** skip, with no embedding call.
   - **Changed:** delete all chunks for that `source`, then chunk, embed and add.
   - **New:** chunk, embed and add.
-- `--rebuild` empties the collection, then ingests `<path>`.
-- Files deleted from disk are not detected. They leave the index only through `--rebuild`.
-- On completion, print one summary line, e.g. `12 files: 9 indexed (214 chunks), 3 unchanged`. There is no progress bar.
+- **Removed:** every run deletes the chunks of any indexed `source` no longer in `./knowledge/`, so the index mirrors the folder.
+- `--rebuild` empties the collection, then ingests. It's still needed after chunking or embedding changes, because file hashes don't change.
+- On completion, print one summary line, e.g. `12 files: 9 indexed (214 chunks), 3 unchanged, 1 removed`. There is no progress bar.
 
 ## Search
 
@@ -114,5 +115,5 @@ One responsibility per module under `src/docqa_rag/`:
 
 - Focused unit tests, with no live API calls. SDK calls sit behind thin functions, so tests substitute a fake deterministic embedder.
 - Chunker tests cover heading splits, code-block integrity, hard-split overlap, oversized paragraphs and front matter stripping.
-- Store and ingest tests run against a temp-dir Chroma and cover upsert of changed files, hash-skip of unchanged files and `--rebuild`.
+- Store and ingest tests run against a temp-dir Chroma and cover upsert of changed files, hash-skip of unchanged files, removal of deleted files and `--rebuild`.
 - Ranking tests check that the fake embedder's nearest chunk comes first.
