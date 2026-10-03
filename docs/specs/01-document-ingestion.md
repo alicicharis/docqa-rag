@@ -58,7 +58,7 @@ New modules (one responsibility each, per `DESIGN.md#layout`): `config.py`, `chu
 - `content_hash`: SHA-256 hex of the file's bytes.
 - Files are read as UTF-8 and processed in sorted path order. The match is the exact `.md` suffix.
 - Each file is processed fully (delete, embed, add) before the next. This also keeps each Chroma `add` far below its max batch size.
-- A file that yields no chunks (empty, or front matter only) counts as indexed with 0 chunks and makes no embedding call.
+- A file that yields no chunks (empty, or front matter only) is left out of the summary (not counted in files, indexed, chunks or unchanged) and makes no embedding call. If it had stored chunks before, they are deleted and it counts as removed.
 - Summary line, exactly: `f"{files} files: {indexed} indexed ({chunks} chunks), {unchanged} unchanged, {removed} removed"`. No pluralization handling.
 - If `./knowledge` doesn't exist or isn't a directory, the error is `folder not found: knowledge/ - create it and add .md files` (printed as `docqa: folder not found: ...`).
 - An empty `knowledge/` is not an error: every indexed source is removed and the summary reports `0 files`.
