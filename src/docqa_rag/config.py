@@ -12,6 +12,8 @@ INDEX_DIR = ".docqa"
 COLLECTION = "docs"
 KNOWLEDGE_DIR = "knowledge"
 TOP_K = 5
+ANSWER_MODEL = "claude-sonnet-5-5"
+ANSWER_MAX_TOKENS = 1024
 
 
 class ConfigError(Exception):
