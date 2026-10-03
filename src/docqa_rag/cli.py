@@ -4,7 +4,7 @@ import sys
 import textwrap
 import traceback
 
-from docqa_rag import embeddings, store
+from docqa_rag import answer, embeddings, store
 from docqa_rag.config import TOP_K, require_env
 from docqa_rag.ingest import ingest
 
@@ -44,6 +44,14 @@ def _run_search(args: argparse.Namespace) -> None:
     print("\n\n".join(_format_result(i, r) for i, r in enumerate(results, 1)))
 
 
+def _run_ask(args: argparse.Namespace) -> None:
+    require_env("OPENAI_API_KEY", "ANTHROPIC_API_KEY")
+    collection = store.existing_collection()
+    vector = embeddings.embed([args.question])[0]
+    results = store.query(collection, vector, args.top_k)
+    print(answer.generate(args.question, results))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="docqa",
@@ -74,9 +82,21 @@ def main() -> None:
         default=TOP_K,
         help=f"number of chunks to return (default {TOP_K})",
     )
+    ask_parser = subparsers.add_parser(
+        "ask",
+        parents=[common],
+        help="answer a question from the indexed documents",
+    )
+    ask_parser.add_argument("question", help="question to answer")
+    ask_parser.add_argument(
+        "--top-k",
+        type=_positive_int,
+        default=TOP_K,
+        help=f"number of chunks to return (default {TOP_K})",
+    )
     args = parser.parse_args()
 
-    if args.command not in ("ingest", "search"):
+    if args.command not in ("ingest", "search", "ask"):
         parser.print_help()
         return
     try:
@@ -84,6 +104,8 @@ def main() -> None:
             _run_ingest(args)
         elif args.command == "search":
             _run_search(args)
+        elif args.command == "ask":
+            _run_ask(args)
     except Exception as e:  # top-level handler, prints and exits 1
         if args.verbose:
             traceback.print_exc()
