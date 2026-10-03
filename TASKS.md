@@ -20,7 +20,7 @@ Ordered by build sequence.
 
 **Design:** [Search](DESIGN.md#search), [Vector store](DESIGN.md#vector-store), [Errors and output](DESIGN.md#errors-and-output), [Testing](DESIGN.md#testing)
 
-## 4. Question answering - to do
+## 4. Question answering - done
 
 **What:** `docqa ask "<question>"` answers from the indexed documents, and says it doesn't know when they don't contain the answer.
 
