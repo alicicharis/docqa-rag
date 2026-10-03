@@ -14,7 +14,7 @@ Ordered by build sequence.
 
 **Design:** [Configuration](DESIGN.md#configuration), [Chunking](DESIGN.md#chunking), [Embeddings](DESIGN.md#embeddings), [Vector store](DESIGN.md#vector-store), [Ingest](DESIGN.md#ingest), [Errors and output](DESIGN.md#errors-and-output), [Testing](DESIGN.md#testing)
 
-## 3. Semantic search - to do
+## 3. Semantic search - done
 
 **What:** `docqa search "<query>"` prints the most similar chunks with their scores and sources, without calling an LLM.
 
