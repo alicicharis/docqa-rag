@@ -8,7 +8,7 @@ Ordered by build sequence.
 
 **Design:** [Stack](DESIGN.md#stack), [Layout](DESIGN.md#layout)
 
-## 2. Document ingestion - to do
+## 2. Document ingestion - done
 
 **What:** `docqa ingest` indexes the markdown files in the `knowledge/` folder into the local index, so the index mirrors the folder. Re-running it skips unchanged files, replaces changed ones and removes deleted ones, and a missing API key fails with one clear message.
 
