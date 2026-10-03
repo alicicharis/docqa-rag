@@ -18,7 +18,7 @@ Ordered by build sequence.
 
 **What:** `docqa search "<query>"` prints the most similar chunks with their scores and sources, without calling an LLM.
 
-**Design:** [Search](DESIGN.md#search), [Vector store](DESIGN.md#vector-store), [Errors and output](DESIGN.md#errors-and-output)
+**Design:** [Search](DESIGN.md#search), [Vector store](DESIGN.md#vector-store), [Errors and output](DESIGN.md#errors-and-output), [Testing](DESIGN.md#testing)
 
 ## 4. Question answering - to do
 
