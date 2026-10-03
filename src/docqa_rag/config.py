@@ -11,6 +11,7 @@ EMBED_MAX_TOKENS = 300_000
 INDEX_DIR = ".docqa"
 COLLECTION = "docs"
 KNOWLEDGE_DIR = "knowledge"
+TOP_K = 5
 
 
 class ConfigError(Exception):
