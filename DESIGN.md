@@ -35,6 +35,7 @@ One responsibility per module under `src/docqa_rag/`:
 | `ingest.py`     | file discovery, change detection, indexing                               |
 | `answer.py`     | prompt and Anthropic call                                                |
 
+- Evals live in `evals/`, outside the package. See [Evals](#evals).
 - `main.py` from the `uv init` scaffold is removed.
 - `.gitignore` includes `.docqa/` and `.env`.
 - `README.md` covers setup (required env keys, install) and usage of the three commands.
@@ -117,3 +118,42 @@ One responsibility per module under `src/docqa_rag/`:
 - Chunker tests cover heading splits, code-block integrity, hard-split overlap, oversized paragraphs and front matter stripping.
 - Store and ingest tests run against a temp-dir Chroma and cover upsert of changed files, hash-skip of unchanged files, removal of deleted files and `--rebuild`.
 - Ranking tests check that the fake embedder's nearest chunk comes first.
+
+## Evals
+
+`uv run python -m evals.run`
+
+- A dev script in `evals/`, not a `docqa` command. It isn't installed with the tool and pytest doesn't run it. It makes live OpenAI and Anthropic calls, so it needs both keys.
+- It runs against the existing `./.docqa` index and never ingests. Run `docqa ingest` first when `knowledge/` has changed.
+- Modules: `metrics.py` (pure retrieval metrics), `judge.py` (the judge's Anthropic call), `run.py` (loads the dataset, runs the questions, prints and saves results).
+
+### Dataset
+
+`evals/questions.json` is a list of cases: `{"question", "answer", "evidence"}`.
+
+- `answer` is the reference answer, or `null` when the documents don't contain one (unanswerable).
+- `evidence` lists the facts the answer needs, as groups of section keys. Each group is one fact, and any section in the group supplies it. Unanswerable cases have `[]`.
+- A section key is `{source relative to cwd} > {heading_path}`, e.g. `knowledge/pricing.md > Quillbyte Pricing > Discounts`, or just the source when the heading path is empty. Labels use sections, not chunk IDs, because chunk IDs change whenever chunking does.
+- Before any API call, the run checks that every evidence key exists in the index. If any don't, it exits 1 and lists them. Without this check, a renamed heading, a moved file or a docs change that wasn't re-ingested would score as a retrieval miss instead of failing.
+
+### Retrieval metrics
+
+- Each question is embedded and queried once at top-k `config.TOP_K` (5), the same path as `ask`. A result matches a group when its section key is in that group.
+- Over answerable cases, at k = 1, 3 and 5:
+  - **hit@k:** at least one group is matched in the top k.
+  - **recall@k:** every group is matched in the top k.
+  - **MRR:** the mean of 1/rank of the first matching result, or 0 when none of the top 5 match.
+
+### Answer grading
+
+- `answer.generate` runs on the same retrieved results, so the eval measures exactly what `ask` would print.
+- Unanswerable: correct only when the answer equals `answer.DONT_KNOW` exactly.
+- Answerable: an answer equal to `DONT_KNOW` is a false refusal and counts as incorrect without a judge call. Any other answer goes to the judge.
+- The judge is `claude-opus-5-5`, a different model from the answer model, so the answer model never grades its own output. It runs at effort `low` and returns structured JSON `{"correct": bool, "reason": str}`. An answer is correct when it states the reference's facts and contradicts none of them. Wording, format and extra correct detail don't matter.
+
+### Output
+
+- A per-question table, then each incorrect answer with the judge's reason, then a summary: the retrieval metrics, answer accuracy, unanswerable accuracy, the false refusal count, and the top-1 similarity score range for answerable vs unanswerable cases.
+- Every run writes `evals/results/{timestamp}.json` (gitignored) with the models and top-k used, every question's details and the summary.
+- Each question runs once. There are no repeats or concurrency.
+- The top-1 scores are the input for a future `ask` similarity threshold. The eval only reports them and sets no threshold.

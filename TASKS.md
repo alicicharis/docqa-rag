@@ -30,10 +30,11 @@ Ordered by build sequence.
 
 **What:** A repeatable way to measure retrieval and answer quality.
 
+**Design:** [Evals](DESIGN.md#evals), [Ask](DESIGN.md#ask)
+
 **Open:**
 
-- Everything: dataset, metrics, how it runs. To be discussed.
-- Whether `ask` should get a similarity threshold, calibrated from eval results.
+- Whether `ask` should get a similarity threshold. Decide from the top-1 scores of the first eval runs, after this task.
 
 ## 6. Hybrid search - backlog
 
