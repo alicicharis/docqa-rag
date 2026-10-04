@@ -12,3 +12,6 @@ wheels/
 # docqa
 .docqa/
 .env
+
+# evals
+evals/results/

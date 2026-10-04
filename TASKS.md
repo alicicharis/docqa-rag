@@ -30,12 +30,6 @@ Ordered by build sequence.
 
 **What:** A repeatable way to measure retrieval and answer quality.
 
-**Design:** [Evals](DESIGN.md#evals), [Ask](DESIGN.md#ask)
-
-**Open:**
-
-- Whether `ask` should get a similarity threshold. Decide from the top-1 scores of the first eval runs, after this task.
-
 ## 6. Hybrid search - backlog
 
 **What:** Retrieval combines semantic search with BM25 keyword search and reranks the merged results.
