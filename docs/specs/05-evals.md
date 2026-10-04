@@ -25,10 +25,10 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
 - `evals/questions.json` - the dataset. It already exists and is labeled. Don't edit it.
 - `evals/__init__.py`, `evals/metrics.py`, `evals/judge.py`, `evals/run.py` (all new).
 - `src/docqa_rag/answer.py` - `generate`, `DONT_KNOW`. Reused as is. `generate` shows the Anthropic call pattern to mirror in the judge.
-- `src/docqa_rag/store.py` - `existing_collection`, `query`, `SearchResult`, reused as is. Gains `stored_sections`, modeled on `stored_sources`.
+- `src/docqa_rag/store.py` - `existing_collection`, `query`, `SearchResult`. Reused as is.
 - `src/docqa_rag/embeddings.py` - `embed`. It batches internally, so embed all questions in one call.
 - `src/docqa_rag/config.py` - `require_env`, `TOP_K`, `EMBEDDING_MODEL`, `ANSWER_MODEL`. Reused as is.
-- `tests/test_eval_metrics.py` (new), `tests/test_store.py`.
+- `tests/test_eval_metrics.py` (new).
 - `pyproject.toml`, `.gitignore`, `README.md`.
 
 **Patterns to follow:**
@@ -42,7 +42,6 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
 - This is a dev script in `evals/`, not a `docqa` command, and not run by pytest. It needs both API keys and an existing index. It never ingests.
 - Dataset case: `{"question": str, "answer": str | null, "evidence": list[list[str]]}`. A `null` answer means the case is unanswerable, with `evidence: []`. Each evidence group is one needed fact, and any section key in the group supplies it.
 - Section key: `"{relpath(source)} > {heading_path}"`, or just `relpath(source)` when `heading_path` is empty.
-- Before any API call, every evidence key must exist in the index. Otherwise the run exits 1 and lists the stale keys.
 - One query per question at `TOP_K`. The metrics, over answerable cases at k in (1, 3, `TOP_K`):
   - hit@k: any group matched.
   - recall@k: every group matched.
@@ -58,12 +57,11 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
 - `evals/__init__.py` is empty. It lets mypy and pytest see `evals` as a package (checked: without it, `mypy src tests evals` fails with "source file found twice").
 - `pyproject.toml` `[tool.pytest.ini_options]` gains `pythonpath = ["."]` so tests can `from evals.metrics import ...`.
 - `evals/metrics.py` (pure, no I/O):
-  - `section_key(source: str, heading_path: str) -> str`. It takes strings, not a `SearchResult`, so it builds keys from query results and from stored metadata alike.
+  - `section_key(result: SearchResult) -> str`
   - `first_rank(keys: list[str], evidence: list[list[str]]) -> int | None`: the 1-based rank of the first key in any group, or `None`.
   - `hit(keys: list[str], evidence: list[list[str]], k: int) -> bool`
   - `recall(keys: list[str], evidence: list[list[str]], k: int) -> bool`
   - `keys` are the ranked section keys of one query's results. Callers only pass answerable cases, so there's no special case for empty evidence.
-- `store.stored_sections(collection) -> set[tuple[str, str]]`: every stored chunk's `(source, heading_path)`, read from metadata the same way `stored_sources` does. Its home is `store.py` because that module owns Chroma access.
 - `evals/judge.py`:
   - `JUDGE_MODEL = "claude-opus-5-5"`, `JUDGE_MAX_TOKENS = 4096`. Thinking is always on for Opus 5.5 and counts toward `max_tokens`, so 4096 leaves room at effort `low`.
   - `JUDGE_SYSTEM`: you grade an answer from a question answering system against a reference answer. The answer is correct when it states the reference's facts and contradicts none of them. Ignore wording, formatting and extra details that don't contradict the reference. Give a one-sentence reason.
@@ -95,12 +93,11 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
   - Order:
     1. `require_env("OPENAI_API_KEY", "ANTHROPIC_API_KEY")`.
     2. `store.existing_collection()`.
-    3. Stale-label check. Build the index keys from `store.stored_sections` with `section_key`. Collect every evidence key in the dataset that isn't among them. If there are any, call `sys.exit(...)` with `stale evidence keys - fix evals/questions.json or run docqa ingest:` followed by one indented key per line, sorted. That prints to stderr and exits 1.
-    4. One `embeddings.embed` call over all questions.
-    5. For each case: `store.query(..., TOP_K)`, then `answer.generate`, then grading. Print the table row right away, so a run of about two minutes shows progress.
-    6. Print the incorrect cases.
-    7. Print the summary.
-    8. Write the JSON.
+    3. One `embeddings.embed` call over all questions.
+    4. For each case: `store.query(..., TOP_K)`, then `answer.generate`, then grading. Print the table row right away, so a run of about two minutes shows progress.
+    5. Print the incorrect cases.
+    6. Print the summary.
+    7. Write the JSON.
   - There's no try/except. A missing key or index ends the run with the exception's traceback. It's a dev script.
   - The table. `type` is `A` (answerable) or `U` (unanswerable). `rank` is `first_rank`, or `-` for unanswerable cases and misses. `top1` is the score of result 1. `result` is `correct`, `incorrect` or `false refusal`. For unanswerable cases, `correct` means refused and `incorrect` means answered.
 
@@ -170,7 +167,7 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
 **Must not:**
 
 - Add dependencies. Use the `anthropic` SDK's raw JSON schema output, not pydantic.
-- Change anything under `src/docqa_rag/` other than adding `store.stored_sections`.
+- Change anything under `src/docqa_rag/`.
 - Add CLI arguments to the script, concurrency, repeat runs, a similarity threshold, ingestion or custom retries.
 - Edit `evals/questions.json`, `DESIGN.md`, `TASKS.md` or `AGENTS.md`.
 
@@ -187,7 +184,6 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
 **Do:**
 
 - `evals/__init__.py` (empty) and `evals/metrics.py`, as settled above.
-- `store.stored_sections`, as settled above.
 - `pyproject.toml`: add `pythonpath = ["."]` to `[tool.pytest.ini_options]`.
 - `tests/test_eval_metrics.py`, two tests:
   - `test_section_key`: with `monkeypatch.chdir(tmp_path)` and sources resolved under `tmp_path / "knowledge"`, a result with a heading path gives `knowledge/a.md > A > B`, and one with an empty heading path gives `knowledge/a.md`.
@@ -196,11 +192,10 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
     - `hit` is False at k=1 and True at k=2,
     - `recall` is False at k=3 and True at k=4,
     - `first_rank(["x"], evidence)` is `None`.
-- `tests/test_store.py`: add `test_stored_sections`. Add chunks for two sources, one chunk with an empty heading path, using the existing temp-dir Chroma setup. Assert the exact set of `(source, heading_path)` pairs.
 
-**Files:** `evals/__init__.py`, `evals/metrics.py`, `src/docqa_rag/store.py`, `pyproject.toml`, `tests/test_eval_metrics.py`, `tests/test_store.py`
+**Files:** `evals/__init__.py`, `evals/metrics.py`, `pyproject.toml`, `tests/test_eval_metrics.py`
 
-**Verify:** `uv run pytest tests/test_eval_metrics.py tests/test_store.py && uv run mypy src tests evals && uv run ruff check && uv run ruff format --check`
+**Verify:** `uv run pytest tests/test_eval_metrics.py && uv run mypy src tests evals && uv run ruff check && uv run ruff format --check`
 
 ### T2: Judge and runner
 
@@ -227,6 +222,5 @@ Done when both tasks pass their verify steps and a run over the repo's `knowledg
 - [ ] `uv run ruff check && uv run ruff format --check && uv run mypy src tests evals && uv run pytest` passes.
 - [ ] Manual, with both keys in `.env`, after `docqa ingest` in the repo root: `uv run python -m evals.run` prints 27 table rows as it goes, then the incorrect cases (if any), then the summary, and writes a JSON file under `evals/results/` that `git status` doesn't show.
 - [ ] Manual: in the results JSON, every case has 5 `retrieved` entries, and `judge_reason` is set exactly for answerable cases that weren't refused.
-- [ ] Manual: change one evidence key in `evals/questions.json` to a heading that doesn't exist, then run. The script exits 1 listing that key, without any API call. Revert the change.
 - [ ] Manual: with `ANTHROPIC_API_KEY` removed from `.env` and the environment, the script fails before any API call, naming the key.
 - [ ] No regressions: `docqa ingest`, `docqa search` and `docqa ask` behave as before.

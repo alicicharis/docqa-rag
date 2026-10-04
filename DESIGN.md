@@ -134,7 +134,6 @@ One responsibility per module under `src/docqa_rag/`:
 - `answer` is the reference answer, or `null` when the documents don't contain one (unanswerable).
 - `evidence` lists the facts the answer needs, as groups of section keys. Each group is one fact, and any section in the group supplies it. Unanswerable cases have `[]`.
 - A section key is `{source relative to cwd} > {heading_path}`, e.g. `knowledge/pricing.md > Quillbyte Pricing > Discounts`, or just the source when the heading path is empty. Labels use sections, not chunk IDs, because chunk IDs change whenever chunking does.
-- Before any API call, the run checks that every evidence key exists in the index. If any don't, it exits 1 and lists them. Without this check, a renamed heading, a moved file or a docs change that wasn't re-ingested would score as a retrieval miss instead of failing.
 
 ### Retrieval metrics
 
